@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -8,6 +9,7 @@ import firebase_admin
 import stripe
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials, firestore
 from pydantic import BaseModel
@@ -28,6 +30,7 @@ from key_rotator import KeyRotator, call_gemini
 from pdf_parser import extract_text_from_pdf
 from prompts import (
     ats_prompt,
+    cover_letter_prompt,
     interview_prompt,
     negotiate_salary_prompt,
     prep_interview_prompt,
@@ -35,12 +38,28 @@ from prompts import (
     rewrite_resume_prompt,
 )
 
+# ── Startup Validation ───────────────────────────────────────────
+_REQUIRED_PRODUCTION_VARS = ["GEMINI_API_KEYS"]
+
+def _validate_env():
+    """Warn (or exit in strict mode) if critical env vars are missing."""
+    missing = [v for v in _REQUIRED_PRODUCTION_VARS if not os.getenv(v)]
+    if missing:
+        msg = f"WARNING: Missing required environment variables: {', '.join(missing)}"
+        print(msg, file=sys.stderr)
+        # In strict mode (STRICT_ENV=1) abort startup
+        if os.getenv("STRICT_ENV", "0") == "1":
+            sys.exit(1)
+
+_validate_env()
+
 # ── Init ────────────────────────────────────────────────────────
 app = FastAPI(title="HireReady API", version="1.0.0")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -83,6 +102,7 @@ init_firebase()
 
 # ── Gemini Key Rotator ──────────────────────────────────────────
 rotator = KeyRotator()
+_startup_time = datetime.now(timezone.utc).isoformat()
 
 # ── Auth Helpers ─────────────────────────────────────────────────
 GUEST_DAILY_LIMIT = 3
@@ -199,6 +219,12 @@ class PrepRequest(BaseModel):
     resume_text: Optional[str] = None
 
 
+class CoverLetterRequest(BaseModel):
+    resume_text: str
+    job_description: str
+    tone: Optional[str] = "professional"
+
+
 # ── Routes ───────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -207,6 +233,8 @@ async def health():
         "status": "ok",
         "keys": rotator.key_count(),
         "firebase": _firebase_initialized,
+        "startup_time": _startup_time,
+        "version": "1.0.0",
     }
 
 
@@ -284,6 +312,16 @@ async def prep_interview_endpoint(request: Request, body: PrepRequest, user: dic
     return result
 
 
+@app.post("/api/pro/cover-letter")
+@limiter.limit(RATE_LIMIT)
+async def cover_letter_endpoint(request: Request, body: CoverLetterRequest, user: dict = Depends(require_pro_user)):
+    prompt = cover_letter_prompt(body.resume_text, body.job_description, body.tone or "professional")
+    raw = call_gemini(prompt, rotator)
+    result = parse_gemini_json(raw)
+    save_history(user, "Cover Letter", body.job_description[:100], result.get("subject_line", "")[:100])
+    return result
+
+
 @app.get("/api/user/usage")
 async def get_user_usage(user: Optional[dict] = Depends(get_current_user)):
     if not user:
@@ -302,20 +340,33 @@ async def get_user_usage(user: Optional[dict] = Depends(get_current_user)):
 
 
 @app.get("/api/user/history")
-async def get_user_history(user: Optional[dict] = Depends(get_current_user)):
+async def get_user_history(
+    user: Optional[dict] = Depends(get_current_user),
+    limit: int = 20,
+    page: int = 1,
+):
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
+    limit = min(max(1, limit), 100)
+    page = max(1, page)
     history = []
+    total = 0
     if _db and user["uid"] != "dev-user":
         try:
-            docs = _db.collection("users").document(user["uid"]).collection("history").order_by(
-                "timestamp", direction=firestore.Query.DESCENDING
-            ).limit(20).stream()
-            for doc in docs:
+            query = (
+                _db.collection("users")
+                .document(user["uid"])
+                .collection("history")
+                .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            )
+            all_docs = list(query.stream())
+            total = len(all_docs)
+            start = (page - 1) * limit
+            for doc in all_docs[start: start + limit]:
                 history.append(doc.to_dict())
         except Exception as e:
             print(f"History fetch error: {e}")
-    return {"history": history}
+    return {"history": history, "total": total, "page": page, "limit": limit}
 
 
 # ── Stripe Endpoints ─────────────────────────────────────────────
