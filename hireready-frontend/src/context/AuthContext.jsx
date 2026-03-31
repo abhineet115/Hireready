@@ -17,8 +17,18 @@ export function AuthProvider({ children }) {
   const [usage, setUsage]     = useState({ used: 0, limit: 10, remaining: 10 });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      if (firebaseUser) {
+        try {
+          const tokenResult = await firebaseUser.getIdTokenResult();
+          setIsPro(tokenResult.claims.pro === true);
+        } catch {
+          setIsPro(false);
+        }
+      } else {
+        setIsPro(false);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -54,12 +64,18 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   const toggleDevMode = () => {
-    setDevMode(prev => {
-      const next = !prev;
-      setIsPro(next);
-      return next;
-    });
+    setDevMode(prev => !prev);
   };
+
+  const refreshProStatus = useCallback(async () => {
+    if (!user) return;
+    try {
+      const tokenResult = await user.getIdTokenResult(true);
+      setIsPro(tokenResult.claims.pro === true);
+    } catch {
+      // silently ignore; keep current state
+    }
+  }, [user]);
 
   const refreshUsage = useCallback((newUsage) => {
     setUsage(newUsage);
@@ -67,15 +83,15 @@ export function AuthProvider({ children }) {
 
   const userType = useMemo(() => {
     if (!user) return 'guest';
-    if (isPro) return 'pro';
+    if (isPro || devMode) return 'pro';
     return 'user';
-  }, [user, isPro]);
+  }, [user, isPro, devMode]);
 
   return (
     <AuthContext.Provider value={{
       user, loading, authError,
       loginWithGoogle, logout, getIdToken,
-      isPro, devMode, toggleDevMode,
+      isPro, devMode, toggleDevMode, refreshProStatus,
       userType, usage, refreshUsage,
     }}>
       {children}
