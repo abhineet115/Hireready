@@ -142,7 +142,7 @@ export default function Dashboard() {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.5rem', border: '1px solid rgba(99,102,241,0.1)' }}>
                 <div>
                   <p style={{ color: '#f1f5f9', fontSize: '0.875rem', fontWeight: 500, margin: '0 0 0.2rem' }}>{item.tool || item.type || 'Scan'}</p>
-                  {item.preview && <p style={{ color: '#64748b', fontSize: '0.78rem', margin: 0 }}>{item.preview}</p>}
+                  {(item.result_preview || item.preview) && <p style={{ color: '#64748b', fontSize: '0.78rem', margin: 0 }}>{item.result_preview || item.preview}</p>}
                 </div>
                 <span style={{ color: '#64748b', fontSize: '0.75rem', whiteSpace: 'nowrap', marginLeft: '1rem' }}>{relativeTime(item.created_at || item.timestamp)}</span>
               </div>

@@ -50,16 +50,16 @@ Return this exact JSON structure:
     {{
       "title": "<role title>",
       "description": "<2-3 sentence description>",
-      "match_percentage": <integer 60-95>,
-      "salary_range": "<e.g. $80,000 - $120,000>",
-      "market_demand": "<one of: High, Medium, Low>",
-      "skills_to_build": [<list of 3-5 skill strings>],
-      "why_fits": "<2-3 sentences explaining why this role fits>"
+      "matchPct": <integer 60-95>,
+      "salaryRange": "<e.g. $80,000 - $120,000>",
+      "demand": "<one of: High, Medium, Low>",
+      "skillsToBuild": [<list of 3-5 skill strings>],
+      "why": "<2-3 sentences explaining why this role fits>"
     }}
   ]
 }}
 
-Order by match_percentage descending."""
+Order by matchPct descending."""
 
 
 def rewrite_resume_prompt(resume_text: str, job_description: str) -> str:
@@ -115,14 +115,14 @@ Return ONLY a valid JSON object with no markdown formatting, no code blocks, no 
 
 Return this exact JSON structure:
 {{
-  "topics": [
+  "priority_topics": [
     {{
       "topic": "<topic name>",
       "importance": "<one of: High, Medium, Low>",
       "reason": "<why this topic matters for this role>"
     }}
   ],
-  "questions": [
+  "practice_questions": [
     {{
       "question": "<likely interview question>",
       "concepts": [<list of key concept strings to address>],
@@ -130,7 +130,7 @@ Return this exact JSON structure:
     }}
   ],
   "red_flags": [<list of potential concern strings to address proactively>],
-  "projects": [<list of project/experience strings to mention>]
+  "projects_to_mention": [<list of project/experience strings to mention>]
 }}
 
-Include 4-6 topics, 5-7 questions, 3-5 red flags, and 3-5 project suggestions."""
+Include 4-6 priority_topics, 5-7 practice_questions, 3-5 red_flags, and 3-5 projects_to_mention."""
