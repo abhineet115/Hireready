@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import {
   signInWithPopup,
   signOut,
@@ -12,6 +12,9 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const [isPro, setIsPro]     = useState(false);
+  const [devMode, setDevMode] = useState(false);
+  const [usage, setUsage]     = useState({ used: 0, limit: 10, remaining: 10 });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -50,8 +53,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const toggleDevMode = () => {
+    setDevMode(prev => {
+      const next = !prev;
+      setIsPro(next);
+      return next;
+    });
+  };
+
+  const refreshUsage = useCallback((newUsage) => {
+    setUsage(newUsage);
+  }, []);
+
+  const userType = useMemo(() => {
+    if (!user) return 'guest';
+    if (isPro) return 'pro';
+    return 'user';
+  }, [user, isPro]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, authError, loginWithGoogle, logout, getIdToken }}>
+    <AuthContext.Provider value={{
+      user, loading, authError,
+      loginWithGoogle, logout, getIdToken,
+      isPro, devMode, toggleDevMode,
+      userType, usage, refreshUsage,
+    }}>
       {children}
     </AuthContext.Provider>
   );
