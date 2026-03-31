@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function CheckoutSuccess() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, refreshProStatus } = useAuth();
   const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function CheckoutSuccess() {
     const refresh = async () => {
       try {
         if (user) {
-          await user.getIdToken(true);
+          await refreshProStatus();
         }
       } catch {
         // ignore
@@ -24,7 +24,7 @@ export default function CheckoutSuccess() {
     };
     const timer = setTimeout(refresh, WEBHOOK_PROCESSING_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [user, loading]);
+  }, [user, loading, refreshProStatus]);
 
   return (
     <div className="page-container" style={{ paddingTop: '4rem', paddingBottom: '3rem', textAlign: 'center' }}>
