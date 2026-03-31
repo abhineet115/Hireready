@@ -1,4 +1,12 @@
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { createCheckoutSession } from '../services/api';
+
 export default function PricingModal({ isOpen, onClose }) {
+  const { user, loginWithGoogle, getIdToken } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   if (!isOpen) return null;
 
   const features = [
@@ -9,6 +17,23 @@ export default function PricingModal({ isOpen, onClose }) {
     'Ad-Free Experience',
     'Priority Support',
   ];
+
+  const handleUpgrade = async () => {
+    setError('');
+    if (!user) {
+      await loginWithGoogle();
+      return;
+    }
+    setLoading(true);
+    try {
+      const token = await getIdToken();
+      const { url } = await createCheckoutSession(token);
+      window.location.href = url;
+    } catch (err) {
+      setError(err.message || 'Could not start checkout. Please try again.');
+      setLoading(false);
+    }
+  };
 
   return (
     <div
@@ -97,11 +122,18 @@ export default function PricingModal({ isOpen, onClose }) {
         {/* CTA button */}
         <button
           className="btn-primary"
-          style={{ width: '100%', justifyContent: 'center', fontSize: '1rem', padding: '0.75rem' }}
-          onClick={() => alert('Stripe integration coming soon!')}
+          style={{ width: '100%', justifyContent: 'center', fontSize: '1rem', padding: '0.75rem', opacity: loading ? 0.7 : 1 }}
+          onClick={handleUpgrade}
+          disabled={loading}
         >
-          Get PRO Access — $9/mo
+          {loading ? 'Redirecting to checkout…' : user ? 'Get PRO Access — $9/mo' : 'Sign in to Upgrade'}
         </button>
+        {error && (
+          <p style={{ color: '#f87171', fontSize: '0.82rem', marginTop: '0.6rem', textAlign: 'center' }}>{error}</p>
+        )}
+        <p style={{ color: '#475569', fontSize: '0.75rem', marginTop: '0.75rem' }}>
+          Secure payment via Stripe · Cancel anytime
+        </p>
       </div>
     </div>
   );

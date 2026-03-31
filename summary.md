@@ -2,7 +2,7 @@
 
 > **Tagline:** *"Beat the ATS. Land Your Dream Job."*
 > **Author:** Abhineet Kumar Sinha
-> **Status:** Working prototype (Stripe not integrated yet)
+> **Status:** Working prototype (Stripe integrated)
 
 ---
 
@@ -52,7 +52,7 @@ The app follows a **freemium model**: 3 tools are free (with daily limits), 3 to
 | **Firebase Auth** | Google sign-in (popup-based) |
 | **Firestore** | Usage tracking, scan history, PRO status |
 | **Gemini AI** (free tier) | All AI analysis (ATS scoring, interview Qs, etc.) |
-| **Stripe** | Payment (simulated — not yet integrated) |
+| **Stripe** | Payment (Stripe Checkout + Webhooks) |
 
 ---
 
@@ -445,9 +445,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 - [ ] Pydantic request models with validation
 
 ### Phase 7: Polish & Deploy
-- [ ] Test all free tools with mock fallback
-- [ ] Test PRO tools with dev mode
-- [ ] Add real Stripe integration (replace simulated checkout)
+- [x] Test all free tools with mock fallback
+- [x] Test PRO tools with dev mode
+- [x] Add real Stripe integration (replace simulated checkout)
 - [ ] Deploy frontend (Vercel / Netlify)
 - [ ] Deploy backend (Railway / Render / GCP)
 - [ ] Set up production Firebase + Firestore rules

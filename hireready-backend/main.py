@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import firebase_admin
+import stripe
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import auth as firebase_auth
@@ -14,7 +15,15 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from config import CORS_ORIGINS, DEV_TEST_TOKEN, RATE_LIMIT
+from config import (
+    CORS_ORIGINS,
+    DEV_TEST_TOKEN,
+    FRONTEND_URL,
+    RATE_LIMIT,
+    STRIPE_PRICE_ID,
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
+)
 from key_rotator import KeyRotator, call_gemini
 from pdf_parser import extract_text_from_pdf
 from prompts import (
@@ -39,6 +48,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Stripe Init ──────────────────────────────────────────────────
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 # ── Firebase Init ────────────────────────────────────────────────
 _firebase_initialized = False
@@ -303,3 +316,98 @@ async def get_user_history(user: Optional[dict] = Depends(get_current_user)):
         except Exception as e:
             print(f"History fetch error: {e}")
     return {"history": history}
+
+
+# ── Stripe Endpoints ─────────────────────────────────────────────
+
+@app.post("/api/create-checkout-session")
+async def create_checkout_session(user: dict = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
+        raise HTTPException(status_code=503, detail="Payment system not configured")
+    uid = user["uid"]
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            success_url=f"{FRONTEND_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_URL}/checkout/cancel",
+            client_reference_id=uid,
+            metadata={"firebase_uid": uid},
+            customer_email=user.get("email") or None,
+        )
+        return {"url": session.url}
+    except stripe.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e.user_message or e))
+
+
+@app.post("/api/stripe-webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Webhook secret not configured")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except stripe.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    event_type = event["type"]
+    data_obj = event["data"]["object"]
+
+    if event_type == "checkout.session.completed":
+        uid = (data_obj.get("metadata") or {}).get("firebase_uid") or data_obj.get("client_reference_id")
+        customer_id = data_obj.get("customer")
+        if uid and _firebase_initialized:
+            try:
+                firebase_auth.set_custom_user_claims(uid, {"pro": True})
+                if _db and customer_id:
+                    _db.collection("users").document(uid).set(
+                        {"stripe_customer_id": customer_id, "is_pro": True}, merge=True
+                    )
+            except Exception as e:
+                print(f"Webhook claim error: {e}")
+
+    elif event_type in ("customer.subscription.deleted", "invoice.payment_failed"):
+        customer_id = data_obj.get("customer")
+        if customer_id and _firebase_initialized and _db:
+            try:
+                results = _db.collection("users").where("stripe_customer_id", "==", customer_id).limit(1).get()
+                if results:
+                    uid = results[0].id
+                    firebase_auth.set_custom_user_claims(uid, {"pro": False})
+                    _db.collection("users").document(uid).set({"is_pro": False}, merge=True)
+            except Exception as e:
+                print(f"Webhook revoke error: {e}")
+
+    return {"received": True}
+
+
+@app.post("/api/manage-billing")
+async def manage_billing(user: dict = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="Payment system not configured")
+    uid = user["uid"]
+    customer_id = None
+    if _db:
+        try:
+            doc = _db.collection("users").document(uid).get()
+            if doc.exists:
+                customer_id = doc.to_dict().get("stripe_customer_id")
+        except Exception:
+            pass
+    if not customer_id:
+        raise HTTPException(status_code=404, detail="No billing account found")
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=f"{FRONTEND_URL}/dashboard",
+        )
+        return {"url": portal_session.url}
+    except stripe.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e.user_message or e))

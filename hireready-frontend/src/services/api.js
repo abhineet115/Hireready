@@ -88,3 +88,11 @@ export async function getUserHistory(token) {
 export async function checkHealth() {
   return apiCall('/api/health');
 }
+
+export async function createCheckoutSession(token) {
+  return apiCall('/api/create-checkout-session', { method: 'POST' }, token);
+}
+
+export async function manageBilling(token) {
+  return apiCall('/api/manage-billing', { method: 'POST' }, token);
+}
