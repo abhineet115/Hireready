@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getUserUsage, getUserHistory, isBackendOffline } from '../services/api';
+import { getUserUsage, getUserHistory, manageBilling, isBackendOffline } from '../services/api';
 
 function relativeTime(dateStr) {
   if (!dateStr) return '';
@@ -23,6 +23,8 @@ export default function Dashboard() {
   const { user, loading, loginWithGoogle, isPro, devMode, userType, usage, refreshUsage, getIdToken } = useAuth();
   const [history, setHistory] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -77,6 +79,19 @@ export default function Dashboard() {
     );
   }
 
+  const handleManageBilling = async () => {
+    setBillingError('');
+    setBillingLoading(true);
+    try {
+      const token = await getIdToken();
+      const { url } = await manageBilling(token);
+      window.location.href = url;
+    } catch (err) {
+      setBillingError(err.message || 'Could not open billing portal.');
+      setBillingLoading(false);
+    }
+  };
+
   const accountLabel = userType === 'pro' ? 'PRO' : userType === 'user' ? 'Signed In (Free)' : 'Guest';
   const initials = user.displayName ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : user.email?.[0]?.toUpperCase() || '?';
 
@@ -99,10 +114,32 @@ export default function Dashboard() {
             {initials}
           </div>
         )}
-        <div>
+        <div style={{ flex: 1 }}>
           <h2 style={{ color: '#f1f5f9', margin: 0, fontSize: '1.2rem' }}>{user.displayName || 'HireReady User'}</h2>
           <p style={{ color: '#94a3b8', margin: '0.15rem 0 0', fontSize: '0.875rem' }}>{user.email}</p>
         </div>
+        {isPro && !devMode && (
+          <div>
+            <button
+              onClick={handleManageBilling}
+              disabled={billingLoading}
+              style={{
+                background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: '0.5rem', padding: '0.45rem 0.9rem', color: '#a5b4fc',
+                cursor: billingLoading ? 'not-allowed' : 'pointer', fontSize: '0.8rem',
+                transition: 'border-color 0.2s', whiteSpace: 'nowrap',
+                opacity: billingLoading ? 0.6 : 1,
+              }}
+              onMouseEnter={e => { if (!billingLoading) e.currentTarget.style.borderColor = 'rgba(99,102,241,0.7)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; }}
+            >
+              {billingLoading ? 'Opening…' : 'Manage Billing'}
+            </button>
+            {billingError && (
+              <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '0.3rem', textAlign: 'right' }}>{billingError}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stats grid */}

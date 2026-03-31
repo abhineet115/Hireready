@@ -8,6 +8,8 @@ import Dashboard          from './pages/Dashboard';
 import ResumeRewriter     from './pages/ResumeRewriter';
 import SalaryNegotiator   from './pages/SalaryNegotiator';
 import AdvancedPrep       from './pages/AdvancedPrep';
+import CheckoutSuccess    from './pages/CheckoutSuccess';
+import CheckoutCancel     from './pages/CheckoutCancel';
 import NotFound           from './pages/NotFound';
 
 export default function App() {
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="resume-rewriter"    element={<ResumeRewriter />} />
         <Route path="salary-negotiator"  element={<SalaryNegotiator />} />
         <Route path="advanced-prep"      element={<AdvancedPrep />} />
+        <Route path="checkout/success"   element={<CheckoutSuccess />} />
+        <Route path="checkout/cancel"    element={<CheckoutCancel />} />
         <Route path="*"                  element={<NotFound />} />
       </Route>
     </Routes>
