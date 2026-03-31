@@ -12,9 +12,12 @@ export default function CooldownButton({
   const [countdown, setCountdown] = useState(0);
   const intervalRef = useRef(null);
 
-  // Clear interval on unmount to prevent memory leaks
+  // Clear interval and reset state on unmount to prevent memory leaks / stale state
   useEffect(() => {
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setPhase('idle');
+    };
   }, []);
 
   const handleClick = async () => {

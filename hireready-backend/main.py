@@ -267,7 +267,7 @@ async def prep_interview_endpoint(request: Request, body: PrepRequest, user: dic
     prompt = prep_interview_prompt(body.job_description, body.resume_text or "")
     raw = call_gemini(prompt, rotator)
     result = parse_gemini_json(raw)
-    save_history(user, "Advanced Prep", body.job_description[:100], f"{len(result.get('questions', []))} questions prepared")
+    save_history(user, "Advanced Prep", body.job_description[:100], f"{len(result.get('practice_questions', []))} questions prepared")
     return result
 
 

@@ -44,14 +44,14 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const getIdToken = async () => {
+  const getIdToken = useCallback(async () => {
     if (!user) return null;
     try {
       return await user.getIdToken();
     } catch {
       return null;
     }
-  };
+  }, [user]);
 
   const toggleDevMode = () => {
     setDevMode(prev => {

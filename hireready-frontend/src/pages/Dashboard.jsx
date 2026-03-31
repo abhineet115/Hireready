@@ -20,7 +20,7 @@ function memberSince(dateStr) {
 }
 
 export default function Dashboard() {
-  const { user, loading, loginWithGoogle, isPro, devMode, userType, usage, refreshUsage } = useAuth();
+  const { user, loading, loginWithGoogle, isPro, devMode, userType, usage, refreshUsage, getIdToken } = useAuth();
   const [history, setHistory] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -29,7 +29,7 @@ export default function Dashboard() {
     setLoadingData(true);
     const fetchData = async () => {
       try {
-        const token = await user.getIdToken();
+        const token = await getIdToken();
         const [usageData, historyData] = await Promise.all([
           getUserUsage(token),
           getUserHistory(token),
@@ -43,8 +43,7 @@ export default function Dashboard() {
       }
     };
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, refreshUsage]);
+  }, [user, getIdToken, refreshUsage]);
 
   if (loading) {
     return (
