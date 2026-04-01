@@ -448,9 +448,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 - [x] Test all free tools with mock fallback
 - [x] Test PRO tools with dev mode
 - [x] Add real Stripe integration (replace simulated checkout)
-- [ ] Deploy frontend (Vercel / Netlify)
-- [ ] Deploy backend (Railway / Render / GCP)
-- [ ] Set up production Firebase + Firestore rules
+- [x] Deploy frontend config ready (vercel.json with SPA rewrites + security headers)
+- [x] Deploy backend config ready (render.yaml with build/start commands + health check)
+- [x] Set up production Firebase + Firestore rules (firestore.rules deployed via firebase CLI)
 
 ---
 
