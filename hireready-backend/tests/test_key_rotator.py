@@ -6,8 +6,6 @@ from unittest.mock import MagicMock, patch
 
 def test_key_rotator_no_keys(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEYS", "")
-    from importlib import reload
-    import hireready_backend_tests_helpers as _  # noqa: prevent accidental import
     from key_rotator import KeyRotator
     rotator = KeyRotator()
     with pytest.raises(ValueError, match="No Gemini API keys configured"):
@@ -50,9 +48,9 @@ def test_call_gemini_success(monkeypatch):
     mock_response.text = '{"score": 85}'
 
     with patch("key_rotator.genai") as mock_genai:
-        mock_model = MagicMock()
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client = MagicMock()
+        mock_genai.Client.return_value = mock_client
+        mock_client.models.generate_content.return_value = mock_response
 
         rotator = KeyRotator()
         result = call_gemini("test prompt", rotator)
@@ -69,16 +67,16 @@ def test_call_gemini_retries_on_quota_exceeded(monkeypatch):
 
     call_count = {"n": 0}
 
-    def side_effect(prompt):
+    def side_effect(*args, **kwargs):
         call_count["n"] += 1
         if call_count["n"] < 2:
             raise ResourceExhausted("quota")
         return mock_response
 
     with patch("key_rotator.genai") as mock_genai:
-        mock_model = MagicMock()
-        mock_model.generate_content.side_effect = side_effect
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client = MagicMock()
+        mock_genai.Client.return_value = mock_client
+        mock_client.models.generate_content.side_effect = side_effect
 
         rotator = KeyRotator()
         result = call_gemini("test prompt", rotator, max_retries=3)

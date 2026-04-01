@@ -9,7 +9,7 @@ async function apiCall(endpoint, options = {}, token = null) {
     const res = await fetch(`${API_BASE}${endpoint}`, options);
     if (!res.ok) {
       let errMsg = `HTTP ${res.status}`;
-      try { const j = await res.json(); errMsg = j.detail || j.message || errMsg; } catch {}
+      try { const j = await res.json(); errMsg = j.detail || j.message || errMsg; } catch { /* ignore parse errors */ }
       throw new Error(errMsg);
     }
     return await res.json();
@@ -74,6 +74,14 @@ export async function prepInterview(jobDescription, resumeText, token) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ job_description: jobDescription, resume_text: resumeText }),
+  }, token);
+}
+
+export async function generateCoverLetter(resumeText, jobDescription, tone, token) {
+  return apiCall('/api/pro/cover-letter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resume_text: resumeText, job_description: jobDescription, tone }),
   }, token);
 }
 
