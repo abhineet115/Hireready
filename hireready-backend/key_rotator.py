@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from google import genai
 from google.api_core.exceptions import ResourceExhausted
 
 
@@ -25,9 +25,11 @@ def call_gemini(prompt: str, rotator: KeyRotator, max_retries: int = 3) -> str:
     for attempt in range(max_retries):
         try:
             key = rotator.get_key()
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            response = model.generate_content(prompt)
+            client = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+            )
             return response.text
         except ResourceExhausted as e:
             last_error = e

@@ -4,7 +4,7 @@ import { prepInterview, uploadResume, isBackendOffline } from '../services/api';
 import PricingModal from '../components/PricingModal';
 import CooldownButton from '../components/CooldownButton';
 
-function mockPrep(jdText) {
+function mockPrep(_jdText) {
   return {
     priority_topics: [
       { topic: 'System Design & Architecture', importance: 'High', reason: 'Frequently assessed for senior roles to evaluate scalability thinking.' },

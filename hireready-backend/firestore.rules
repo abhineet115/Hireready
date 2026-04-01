@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Users collection ──────────────────────────────────────────
+    match /users/{userId} {
+      // Only the authenticated owner can read/write their profile doc
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Usage sub-collection: owner can read; writes only via backend
+      match /usage/{date} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // backend-only via Admin SDK
+      }
+
+      // History sub-collection: owner can read; backend writes only
+      match /history/{docId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // backend-only via Admin SDK
+      }
+    }
+
+    // All other documents are denied by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

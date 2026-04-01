@@ -10,8 +10,9 @@ export default function CircularProgress({
 
   useEffect(() => {
     if (!animated) {
-      setDisplayScore(score);
-      return;
+      // Use a timeout so we don't setState synchronously inside the effect body
+      const id = setTimeout(() => setDisplayScore(score), 0);
+      return () => clearTimeout(id);
     }
     let startTime = null;
     const duration = 1500;

@@ -7,6 +7,7 @@ const tools = [
   { to: '/resume-rewriter',     label: 'Resume Rewriter',      desc: 'Rewrite your resume bullets with AI-powered suggestions.', tag: 'PRO' },
   { to: '/salary-negotiator',   label: 'Salary Negotiator',    desc: 'Build your salary negotiation strategy with market data.', tag: 'PRO' },
   { to: '/advanced-prep',       label: 'Advanced Interview Prep', desc: 'Deep-dive preparation with topics, red flags and projects.', tag: 'PRO' },
+  { to: '/cover-letter',        label: 'Cover Letter Generator', desc: 'Generate a tailored, compelling cover letter in seconds.', tag: 'PRO' },
 ];
 
 export default function Home() {

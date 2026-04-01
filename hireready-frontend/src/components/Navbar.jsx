@@ -12,6 +12,7 @@ const PRO_LINKS = [
   { to: '/resume-rewriter',   label: 'Resume Rewriter' },
   { to: '/salary-negotiator', label: 'Salary Negotiator' },
   { to: '/advanced-prep',     label: 'Advanced Prep' },
+  { to: '/cover-letter',      label: 'Cover Letter' },
 ];
 
 export default function Navbar() {
@@ -78,6 +79,7 @@ export default function Navbar() {
             user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <NavLink to="/dashboard" style={navLinkStyle}>Dashboard</NavLink>
+                <NavLink to="/history" style={navLinkStyle}>History</NavLink>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {user.photoURL && (
                     <img src={user.photoURL} alt="" style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid var(--color-neon-blue)' }} referrerPolicy="no-referrer" />
@@ -139,9 +141,14 @@ export default function Navbar() {
             </NavLink>
           ))}
           {user && (
-            <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} style={{ color: 'var(--color-text-secondary)', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
-              Dashboard
-            </NavLink>
+            <>
+              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} style={{ color: 'var(--color-text-secondary)', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                Dashboard
+              </NavLink>
+              <NavLink to="/history" onClick={() => setMenuOpen(false)} style={{ color: 'var(--color-text-secondary)', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                History
+              </NavLink>
+            </>
           )}
           <div style={{ paddingTop: '0.5rem' }}>
             {user ? (

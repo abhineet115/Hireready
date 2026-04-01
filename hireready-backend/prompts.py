@@ -134,3 +134,25 @@ Return this exact JSON structure:
 }}
 
 Include 4-6 priority_topics, 5-7 practice_questions, 3-5 red_flags, and 3-5 projects_to_mention."""
+
+
+def cover_letter_prompt(resume_text: str, job_description: str, tone: str = "professional") -> str:
+    return f"""Write a tailored cover letter based on the resume and job description below. Tone: {tone}.
+
+Resume:
+{resume_text}
+
+Job Description:
+{job_description}
+
+Return ONLY a valid JSON object with no markdown formatting, no code blocks, no explanation.
+
+Return this exact JSON structure:
+{{
+  "subject_line": "<email subject line for the application>",
+  "cover_letter": "<full cover letter text, 3-4 paragraphs, ready to send>",
+  "key_selling_points": [<list of 4-5 strings highlighting why the candidate is a strong fit>],
+  "customization_tips": [<list of 3 strings suggesting further personalizations>]
+}}
+
+The cover letter should be concise (300-400 words), compelling, and specifically address the job requirements."""

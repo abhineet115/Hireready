@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getUserUsage, getUserHistory, manageBilling, isBackendOffline } from '../services/api';
+import { getUserUsage, getUserHistory, manageBilling } from '../services/api';
 
 function relativeTime(dateStr) {
   if (!dateStr) return '';
